@@ -1,22 +1,43 @@
 {
-    "name": "Wayfinder - Your Travel Companion",
+    "name": "Wayfinder - Maps & Navigation",
     "short_name": "Wayfinder",
-    "description": "Explore and navigate with ease using Wayfinder",
+    "description": "Maps, location sharing and navigation made easy",
     "start_url": "index.html",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#3498db",
+    "orientation": "portrait-primary",
     "icons": [
       {
-        "src": "images/icon-192.png",
+        "src": "/images/app-icon-192.png",
         "sizes": "192x192",
-        "type": "image/png"
+        "type": "image/png",
+        "purpose": "any maskable"
       },
       {
-        "src": "images/icon-512.png",
+        "src": "/images/app-icon-512.png",
         "sizes": "512x512",
-        "type": "image/png"
+        "type": "image/png",
+        "purpose": "any maskable"
       }
-    ]
+    ],
+    "shortcuts": [
+      {
+        "name": "Find Places Nearby",
+        "short_name": "Nearby",
+        "description": "Find places near your current location",
+        "url": "/index.html?view=map&action=nearby",
+        "icons": [{ "src": "/images/nearby-icon.png", "sizes": "96x96" }]
+      },
+      {
+        "name": "Plan a Route",
+        "short_name": "Routes",
+        "description": "Plan and navigate a new route",
+        "url": "/index.html?view=routes",
+        "icons": [{ "src": "/images/route-icon.png", "sizes": "96x96" }]
+      }
+    ],
+    "related_applications": [],
+    "prefer_related_applications": false
   }
   
