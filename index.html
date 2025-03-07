@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PAW - Pet Adoption Website</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#f27059">
+    <link rel="icon" href="images/paw-icon-192.png">
+    <link rel="apple-touch-icon" href="images/paw-icon-192.png">
+</head>
+<body>
+    <header>
+        <div class="logo">
+            <img src="images/paw-icon-64.png" alt="PAW Logo">
+            <h1>PAW</h1>
+        </div>
+        <p class="tagline">Find your perfect furry friend</p>
+    </header>
+    
+    <div class="filters">
+        <button class="filter-btn active" data-filter="all">All Pets</button>
+        <button class="filter-btn" data-filter="dog">Dogs</button>
+        <button class="filter-btn" data-filter="cat">Cats</button>
+        <button class="filter-btn" data-filter="other">Others</button>
+    </div>
+    
+    <main class="pet-grid">
+        <!-- Pet cards will be inserted here via JavaScript -->
+    </main>
+    
+    <div class="install-prompt" id="install-prompt">
+        <p>Install PAW app for a better experience!</p>
+        <button id="install-button">Install</button>
+        <button id="dismiss-button">Not Now</button>
+    </div>
+    
+    <footer>
+        <p>© 2023 PAW - Pet Adoption Website</p>
+        <p>Made with ❤️ for animals</p>
+    </footer>
+    
+    <script src="app.js"></script>
+    <script>
+        // Register service worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/service-worker.js')
+                .then(reg => console.log('Service worker registered!', reg))
+                .catch(err => console.log('Service worker registration failed:', err));
+        }
+    </script>
+</body>
+</html>

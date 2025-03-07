@@ -1,0 +1,196 @@
+:root {
+    --primary-color: #f27059;
+    --secondary-color: #2d4059;
+    --accent-color: #ffb400;
+    --light-color: #f6f6f6;
+    --dark-color: #222831;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: var(--light-color);
+    color: var(--dark-color);
+}
+
+header {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 20px;
+    text-align: center;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.logo img {
+    width: 40px;
+    height: 40px;
+}
+
+.tagline {
+    margin-top: 5px;
+    font-style: italic;
+}
+
+.filters {
+    display: flex;
+    justify-content: center;
+    padding: 15px;
+    background-color: var(--secondary-color);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filter-btn {
+    background-color: var(--light-color);
+    border: none;
+    padding: 8px 15px;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.filter-btn:hover {
+    background-color: var(--accent-color);
+    color: var(--dark-color);
+}
+
+.filter-btn.active {
+    background-color: var(--accent-color);
+    color: var(--dark-color);
+    font-weight: bold;
+}
+
+.pet-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+.pet-card {
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.pet-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.pet-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.pet-info {
+    padding: 15px;
+}
+
+.pet-name {
+    font-size: 1.5rem;
+    margin-bottom: 5px;
+    color: var(--secondary-color);
+}
+
+.pet-age {
+    color: var(--primary-color);
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.pet-description {
+    color: var(--dark-color);
+    line-height: 1.4;
+}
+
+.adopt-button {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    background-color: var(--accent-color);
+    color: var(--dark-color);
+    border: none;
+    border-radius: 5px;
+    margin-top: 15px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+}
+
+.adopt-button:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.install-prompt {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--secondary-color);
+    color: white;
+    padding: 15px;
+    border-radius: 10px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    display: none;
+    text-align: center;
+    z-index: 100;
+}
+
+.install-prompt button {
+    margin: 10px 5px 0;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#install-button {
+    background-color: var(--accent-color);
+    color: var(--dark-color);
+}
+
+#dismiss-button {
+    background-color: transparent;
+    color: white;
+    border: 1px solid white;
+}
+
+footer {
+    background-color: var(--secondary-color);
+    color: white;
+    text-align: center;
+    padding: 20px;
+    margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+    .pet-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .filters {
+        flex-direction: row;
+    }
+    
+    .filter-btn {
+        flex: 1;
+        text-align: center;
+    }
+}
