@@ -1,81 +1,75 @@
-const CACHE_NAME = 'paw-app-v1';
-const ASSETS = [
+const CACHE_NAME = 'wayfinder-cache-v1';
+const urlsToCache = [
   '/',
   '/index.html',
   '/style.css',
   '/app.js',
   '/manifest.json',
-  '/images/paw-icon-64.png',
-  '/images/paw-icon-192.png',
-  '/images/paw-icon-512.png',
-  'https://images.unsplash.com/photo-1552053831-71594a27632d?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-  'https://images.unsplash.com/photo-1592194996308-7b43878e84a6?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-  'https://images.unsplash.com/photo-1589941013453-ec89f98c6492?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-  'https://images.unsplash.com/photo-1586042091284-bd35c8c1d917?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-  'https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60',
-  'https://images.unsplash.com/photo-1505628346881-b72b27e84530?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60'
+  '/images/logo.png',
+  '/images/icon-192.png',
+  '/images/icon-512.png'
 ];
 
-// Install event - cache assets
+// Install the service worker and cache assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Caching app assets');
-        return cache.addAll(ASSETS);
+        return cache.addAll(urlsToCache);
       })
   );
 });
 
-// Activate event - clean up old caches
+// Activate and clean up old caches
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
-        cacheNames.filter(cacheName => {
-          return cacheName !== CACHE_NAME;
-        }).map(cacheName => {
-          return caches.delete(cacheName);
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            return caches.delete(cacheName);
+          }
         })
       );
     })
   );
 });
 
-// Fetch event - serve from cache, fall back to network
+// Serve cached content when offline
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
       .then(response => {
-        // Cache hit - return the response from the cached version
+        // Cache hit - return response
         if (response) {
           return response;
         }
         
-        // Not in cache - return the result from the live server
-        // and cache for next time
-        return fetch(event.request).then(
-          networkResponse => {
-            // Check if we received a valid response
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
+        // Clone the request
+        const fetchRequest = event.request.clone();
+
+        return fetch(fetchRequest).then(
+          response => {
+            // Check if valid response
+            if (!response || response.status !== 200 || response.type !== 'basic') {
+              return response;
             }
 
             // Clone the response
-            const responseToCache = networkResponse.clone();
+            const responseToCache = response.clone();
 
             caches.open(CACHE_NAME)
               .then(cache => {
                 cache.put(event.request, responseToCache);
               });
 
-            return networkResponse;
+            return response;
           }
         );
       })
       .catch(() => {
-        // If both cache and network fail, show a fallback page
-        if (event.request.url.indexOf('.html') > -1) {
+        // Fallback for navigation requests
+        if (event.request.mode === 'navigate') {
           return caches.match('/index.html');
         }
       })
