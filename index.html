@@ -2,53 +2,462 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PAW - Pet Adoption Website</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>PAW - Personal Assistant for Wayfinding</title>
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#f27059">
+    <meta name="theme-color" content="#3498db">
     <link rel="icon" href="images/paw-icon-192.png">
     <link rel="apple-touch-icon" href="images/paw-icon-192.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <!-- Leaflet CSS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 </head>
 <body>
-    <header>
-        <div class="logo">
-            <img src="images/paw-icon-64.png" alt="PAW Logo">
-            <h1>PAW</h1>
+    <!-- Initial Loading Animation -->
+    <div id="loading-screen">
+        <div class="compass-loader">
+            <div class="compass-circle"></div>
+            <div class="compass-arrow"></div>
         </div>
-        <p class="tagline">Find your perfect furry friend</p>
-    </header>
-    
-    <div class="filters">
-        <button class="filter-btn active" data-filter="all">All Pets</button>
-        <button class="filter-btn" data-filter="dog">Dogs</button>
-        <button class="filter-btn" data-filter="cat">Cats</button>
-        <button class="filter-btn" data-filter="other">Others</button>
+        <p>Loading PAW...</p>
+    </div>
+
+    <!-- Installation Prompt for iOS -->
+    <div id="ios-install-prompt" class="installation-guide ios">
+        <div class="guide-content">
+            <h2>Install PAW on your Home Screen</h2>
+            <div class="install-steps">
+                <div class="step">
+                    <div class="step-icon">1</div>
+                    <p>Tap the <span class="share-icon">
+                        <svg width="20" height="30" viewBox="0 0 20 30">
+                            <path d="M10,3 L4,10 L7,10 L7,18 L13,18 L13,10 L16,10 L10,3 Z M5,21 L5,23 L15,23 L15,21 L5,21 Z" fill="currentColor"></path>
+                        </svg>
+                    </span> share icon</p>
+                </div>
+                <div class="step">
+                    <div class="step-icon">2</div>
+                    <p>Scroll down and tap <strong>"Add to Home Screen"</strong></p>
+                </div>
+                <div class="step">
+                    <div class="step-icon">3</div>
+                    <p>Tap <strong>"Add"</strong> in the top right</p>
+                </div>
+            </div>
+            <div class="animation-container">
+                <div class="phone-frame">
+                    <div class="phone-screen">
+                        <div class="browser-bar"></div>
+                        <div class="share-menu">
+                            <div class="share-option highlight">Add to Home Screen</div>
+                        </div>
+                        <div class="confirm-prompt">
+                            <div class="add-button">Add</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
     
-    <main class="pet-grid">
-        <!-- Pet cards will be inserted here via JavaScript -->
-    </main>
-    
-    <div class="install-prompt" id="install-prompt">
-        <p>Install PAW app for a better experience!</p>
-        <button id="install-button">Install</button>
-        <button id="dismiss-button">Not Now</button>
+    <!-- Installation Prompt for Android -->
+    <div id="android-install-prompt" class="installation-guide android">
+        <div class="guide-content">
+            <h2>Install PAW on your Home Screen</h2>
+            <div class="install-steps">
+                <div class="step">
+                    <div class="step-icon">1</div>
+                    <p>Tap the menu <span class="menu-icon">⋮</span> icon</p>
+                </div>
+                <div class="step">
+                    <div class="step-icon">2</div>
+                    <p>Tap <strong>"Install app"</strong> or <strong>"Add to Home screen"</strong></p>
+                </div>
+            </div>
+            <button id="later-button">Later</button>
+        </div>
+    </div>
+
+    <!-- "Please Install" screen (shown when not in standalone mode) -->
+    <div id="install-container">
+        <div class="install-content">
+            <img src="images/paw-icon-192.png" alt="PAW Logo" class="install-logo">
+            <h1>PAW</h1>
+            <p class="install-tagline">Personal Assistant for Wayfinding</p>
+            <p class="install-description">This app works best when installed on your home screen</p>
+            <button id="show-install-guide" class="install-btn">Install Now</button>
+        </div>
+    </div>
+
+    <!-- App content (hidden until installed) -->
+    <div id="app-content" style="display: none;">
+        <header>
+            <div class="status-bar"></div>
+            <div class="app-header">
+                <button id="sidebar-toggle" class="icon-btn">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M3,6H21V8H3V6M3,11H21V13H3V11M3,16H21V18H3V16Z" />
+                    </svg>
+                </button>
+                <h1>PAW</h1>
+                <button id="search-btn" class="icon-btn">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M9.5,3A6.5,6.5 0 0,1 16,9.5C16,11.11 15.41,12.59 14.43,13.73L14.71,14H15.5L20.5,19L19,20.5L14,15.5V14.71L13.73,14.43C12.59,15.41 11.11,16 9.5,16A6.5,6.5 0 0,1 3,9.5A6.5,6.5 0 0,1 9.5,3M9.5,5C7,5 5,7 5,9.5C5,12 7,14 9.5,14C12,14 14,12 14,9.5C14,7 12,5 9.5,5Z" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+        
+        <div id="sidebar">
+            <div class="sidebar-header">
+                <h2>Menu</h2>
+                <button id="close-sidebar" class="icon-btn">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                    </svg>
+                </button>
+            </div>
+            <nav>
+                <ul>
+                    <li data-view="map-view" class="active">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z" />
+                        </svg>
+                        <span>Map</span>
+                    </li>
+                    <li data-view="saved-view">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M17,3H7A2,2 0 0,0 5,5V21L12,18L19,21V5A2,2 0 0,0 17,3M12,14.3L10.25,13.2L8.5,14.3L9,12.35L7.5,11.1L9.5,10.9L10.25,9L11,10.9L13,11.1L11.5,12.35L12,14.3Z" />
+                        </svg>
+                        <span>Saved Places</span>
+                    </li>
+                    <li data-view="nearby-view">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M12,2C15.31,2 18,4.66 18,7.95C18,12.41 12,19 12,19C12,19 6,12.41 6,7.95C6,4.66 8.69,2 12,2M12,6A2,2 0 0,0 10,8A2,2 0 0,0 12,10A2,2 0 0,0 14,8A2,2 0 0,0 12,6M20,19C20,21.21 16.42,23 12,23C7.58,23 4,21.21 4,19C4,17.71 5.22,16.56 7.11,15.83L7.75,16.74C6.67,17.19 6,17.81 6,18.5C6,19.88 8.69,21 12,21C15.31,21 18,19.88 18,18.5C18,17.81 17.33,17.19 16.25,16.74L16.89,15.83C18.78,16.56 20,17.71 20,19Z" />
+                        </svg>
+                        <span>Nearby</span>
+                    </li>
+                    <li data-view="route-view">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,12.5A1.5,1.5 0 0,1 10.5,11A1.5,1.5 0 0,1 12,9.5A1.5,1.5 0 0,1 13.5,11A1.5,1.5 0 0,1 12,12.5M12,7.2C9.9,7.2 8.2,8.9 8.2,11C8.2,14 12,17.5 12,17.5C12,17.5 15.8,14 15.8,11C15.8,8.9 14.1,7.2 12,7.2Z" />
+                        </svg>
+                        <span>Routes</span>
+                    </li>
+                    <li data-view="settings-view">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M12,15.5A3.5,3.5 0 0,1 8.5,12A3.5,3.5 0 0,1 12,8.5A3.5,3.5 0 0,1 15.5,12A3.5,3.5 0 0,1 12,15.5M19.43,12.97C19.47,12.65 19.5,12.33 19.5,12C19.5,11.67 19.47,11.34 19.43,11L21.54,9.37C21.73,9.22 21.78,8.95 21.66,8.73L19.66,5.27C19.54,5.05 19.27,4.96 19.05,5.05L16.56,6.05C16.04,5.66 15.5,5.32 14.87,5.07L14.5,2.42C14.46,2.18 14.25,2 14,2H10C9.75,2 9.54,2.18 9.5,2.42L9.13,5.07C8.5,5.32 7.96,5.66 7.44,6.05L4.95,5.05C4.73,4.96 4.46,5.05 4.34,5.27L2.34,8.73C2.21,8.95 2.27,9.22 2.46,9.37L4.57,11C4.53,11.34 4.5,11.67 4.5,12C4.5,12.33 4.53,12.65 4.57,12.97L2.46,14.63C2.27,14.78 2.21,15.05 2.34,15.27L4.34,18.73C4.46,18.95 4.73,19.03 4.95,18.95L7.44,17.94C7.96,18.34 8.5,18.68 9.13,18.93L9.5,21.58C9.54,21.82 9.75,22 10,22H14C14.25,22 14.46,21.82 14.5,21.58L14.87,18.93C15.5,18.67 16.04,18.34 16.56,17.94L19.05,18.95C19.27,19.03 19.54,18.95 19.66,18.73L21.66,15.27C21.78,15.05 21.73,14.78 21.54,14.63L19.43,12.97Z" />
+                        </svg>
+                        <span>Settings</span>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        
+        <!-- Search overlay -->
+        <div id="search-overlay">
+            <div class="search-header">
+                <button id="back-from-search" class="icon-btn">
+                    <svg viewBox="0 0 24 24" width="24" height="24">
+                        <path fill="currentColor" d="M20,11V13H8L13.5,18.5L12.08,19.92L4.16,12L12.08,4.08L13.5,5.5L8,11H20Z" />
+                    </svg>
+                </button>
+                <input type="text" id="search-input" placeholder="Search places...">
+            </div>
+            <div class="search-results" id="search-results">
+                <!-- Search results will be added dynamically -->
+            </div>
+        </div>
+
+        <div id="views-container">
+            <!-- Main Map View -->
+            <div id="map-view" class="app-view active-view">
+                <div id="map"></div>
+                <div class="map-controls">
+                    <button id="locate-me" class="map-control-btn">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10M10,22C9.75,22 9.54,21.82 9.5,21.58L9.13,18.93C8.5,18.68 7.96,18.34 7.44,17.94L4.95,18.95C4.73,19.03 4.46,18.95 4.34,18.73L2.34,15.27C2.21,15.05 2.27,14.78 2.46,14.63L4.57,12.97C4.53,12.65 4.5,12.33 4.5,12C4.5,11.67 4.53,11.34 4.57,11L2.46,9.37C2.27,9.22 2.21,8.95 2.34,8.73L4.34,5.27C4.46,5.05 4.73,4.96 4.95,5.05L7.44,6.05C7.96,5.66 8.5,5.32 9.13,5.07L9.5,2.42C9.54,2.18 9.75,2 10,2H14C14.25,2 14.46,2.18 14.5,2.42L14.87,5.07C15.5,5.32 16.04,5.66 16.56,6.05L19.05,5.05C19.27,4.96 19.54,5.05 19.66,5.27L21.66,8.73C21.78,8.95 21.73,9.22 21.54,9.37L19.43,11C19.47,11.34 19.5,11.67 19.5,12C19.5,12.33 19.47,12.65 19.43,12.97L21.54,14.63C21.73,14.78 21.78,15.05 21.66,15.27L19.66,18.73C19.54,18.95 19.27,19.03 19.05,18.95L16.56,17.94C16.04,18.34 15.5,18.68 14.87,18.93L14.5,21.58C14.46,21.82 14.25,22 14,22H10Z" />
+                        </svg>
+                    </button>
+                    <button id="zoom-in" class="map-control-btn">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z" />
+                        </svg>
+                    </button>
+                    <button id="zoom-out" class="map-control-btn">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M19,13H5V11H19V13Z" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="floating-panel" id="bottom-panel">
+                    <div class="handle"></div>
+                    <h3>Explore around you</h3>
+                    <div class="category-list">
+                        <div class="category-item" data-category="restaurant">
+                            <div class="category-icon">🍽️</div>
+                            <span>Food</span>
+                        </div>
+                        <div class="category-item" data-category="cafe">
+                            <div class="category-icon">☕</div>
+                            <span>Cafes</span>
+                        </div>
+                        <div class="category-item" data-category="hotel">
+                            <div class="category-icon">🏨</div>
+                            <span>Hotels</span>
+                        </div>
+                        <div class="category-item" data-category="attraction">
+                            <div class="category-icon">🏛️</div>
+                            <span>Attractions</span>
+                        </div>
+                        <div class="category-item" data-category="shopping">
+                            <div class="category-icon">🛍️</div>
+                            <span>Shopping</span>
+                        </div>
+                        <div class="category-item" data-category="park">
+                            <div class="category-icon">🌳</div>
+                            <span>Parks</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Saved Places View -->
+            <div id="saved-view" class="app-view">
+                <h2 class="view-title">Saved Places</h2>
+                <div id="saved-places-container">
+                    <!-- Saved places will be loaded here dynamically -->
+                    <div class="empty-state" id="no-saved-places">
+                        <svg viewBox="0 0 24 24" width="64" height="64">
+                            <path fill="#3498db" d="M17,3H7A2,2 0 0,0 5,5V21L12,18L19,21V5A2,2 0 0,0 17,3M12,14L10.25,13L8.5,14L9,12L7.5,10.5L9.75,10.25L11,8.5L12.25,10.25L14.5,10.5L13,12L12,14Z" />
+                        </svg>
+                        <p>You haven't saved any places yet</p>
+                        <p class="hint">Tap the bookmark icon on a place card to save it</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Nearby View -->
+            <div id="nearby-view" class="app-view">
+                <h2 class="view-title">Nearby Places</h2>
+                <div class="category-filters">
+                    <button class="category-filter active" data-filter="all">All</button>
+                    <button class="category-filter" data-filter="restaurant">Food</button>
+                    <button class="category-filter" data-filter="attraction">Attractions</button>
+                    <button class="category-filter" data-filter="shopping">Shopping</button>
+                </div>
+                <div id="nearby-places-container">
+                    <!-- Nearby places will be loaded here dynamically -->
+                    <div class="loading-indicator" id="nearby-loading">
+                        <div class="spinner"></div>
+                        <p>Finding places near you...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Route Planning View -->
+            <div id="route-view" class="app-view">
+                <h2 class="view-title">Plan Your Route</h2>
+                <div class="route-form">
+                    <div class="route-input-group">
+                        <div class="route-icon start">A</div>
+                        <input type="text" id="route-start" placeholder="Starting point">
+                        <button class="use-current-location" data-for="start">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path fill="currentColor" d="M12,8A4,4 0 0,1 16,12A4,4 0 0,1 12,16A4,4 0 0,1 8,12A4,4 0 0,1 12,8M12,10A2,2 0 0,0 10,12A2,2 0 0,0 12,14A2,2 0 0,0 14,12A2,2 0 0,0 12,10Z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="route-input-group">
+                        <div class="route-icon end">B</div>
+                        <input type="text" id="route-end" placeholder="Destination">
+                        <button class="clear-input" data-for="end">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="route-options">
+                        <button class="route-option active" data-mode="driving">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path fill="currentColor" d="M18.92,6.01C18.72,5.42 18.16,5 17.5,5h-11c-0.66,0-1.21,0.42-1.42,1.01L3,12v8c0,0.55 0.45,1 1,1h1c0.55,0 1-0.45 1-1v-1h12v1c0,0.55 0.45,1 1,1h1c0.55,0 1-0.45 1-1v-8l-2.08-5.99zM6.5,16c-0.83,0-1.5-0.67-1.5-1.5S5.67,13 6.5,13s1.5,0.67 1.5,1.5S7.33,16 6.5,16zM17.5,16c-0.83,0-1.5-0.67-1.5-1.5s0.67-1.5 1.5-1.5 1.5,0.67 1.5,1.5-0.67,1.5-1.5,1.5zM5,11l1.5-4.5h11L19,11H5z" />
+                            </svg>
+                            <span>Driving</span>
+                        </button>
+                        <button class="route-option" data-mode="walking">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path fill="currentColor" d="M13.5,5.5C14.59,5.5 15.5,4.58 15.5,3.5C15.5,2.38 14.59,1.5 13.5,1.5C12.39,1.5 11.5,2.38 11.5,3.5C11.5,4.58 12.39,5.5 13.5,5.5M9.8,8.9L7,23H9.1L10.9,15L13,17V23H15V15.5L12.9,13.5L13.5,10.5C14.8,12 16.8,13 19,13V11C17.1,11 15.5,10 14.7,8.6L13.7,7C13.3,6.4 12.7,6 12,6C11.7,6 11.5,6.1 11.2,6.1L6,8.3V13H8V9.6L9.8,8.9Z" />
+                            </svg>
+                            <span>Walking</span>
+                        </button>
+                        <button class="route-option" data-mode="cycling">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path fill="currentColor" d="M5,20.5A3.5,3.5 0 0,1 1.5,17A3.5,3.5 0 0,1 5,13.5A3.5,3.5 0 0,1 8.5,17A3.5,3.5 0 0,1 5,20.5M5,12A5,5 0 0,0 0,17A5,5 0 0,0 5,22A5,5 0 0,0 10,17A5,5 0 0,0 5,12M14.8,10H19V8.2H15.8L13.8,4.8C13.3,4.1 12.6,3.5 11.7,3.3L8.8,2.5L8.3,3.7L11.2,4.5C11.6,4.7 12,4.9 12.1,5.2L13.6,8C11.5,8 9.4,9 8.1,10.6L9.3,11.9C10.3,10.5 12.1,9.9 13.9,10.2L15.2,13L14.8,10M19,20.5A3.5,3.5 0 0,1 15.5,17A3.5,3.5 0 0,1 19,13.5A3.5,3.5 0 0,1 22.5,17A3.5,3.5 0 0,1 19,20.5M19,12A5,5 0 0,0 14,17A5,5 0 0,0 19,22A5,5 0 0,0 24,17A5,5 0 0,0 19,12Z" />
+                            </svg>
+                            <span>Cycling</span>
+                        </button>
+                        <button class="route-option" data-mode="transit">
+                            <svg viewBox="0 0 24 24" width="24" height="24">
+                                <path fill="currentColor" d="M4,16V6H2V16A5,5 0 0,0 7,21H17A5,5 0 0,0 22,16V6H20V16A3,3 0 0,1 17,19H7A3,3 0 0,1 4,16M17,8H13V14H17V8M17,6A2,2 0 0,0 19,4V2H17V4H7V2H5V4A2,2 0 0,0 7,6H17M9,14V8H5V14H9Z" />
+                            </svg>
+                            <span>Transit</span>
+                        </button>
+                    </div>
+                    <button id="calculate-route" class="primary-btn">Find Route</button>
+                </div>
+                <div id="route-results">
+                    <!-- Route information will be displayed here -->
+                </div>
+            </div>
+            
+            <!-- Settings View -->
+            <div id="settings-view" class="app-view">
+                <h2 class="view-title">Settings</h2>
+                <div class="settings-container">
+                    <div class="settings-group">
+                        <h3>Map Settings</h3>
+                        <div class="setting-item">
+                            <span>Map Style</span>
+                            <select id="map-style-select">
+                                <option value="default">Default</option>
+                                <option value="satellite">Satellite</option>
+                                <option value="dark">Dark Mode</option>
+                                <option value="light">Light Mode</option>
+                            </select>
+                        </div>
+                        <div class="setting-item toggle">
+                            <span>3D Buildings</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="3d-buildings-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <h3>Navigation</h3>
+                        <div class="setting-item toggle">
+                            <span>Voice Navigation</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="voice-navigation-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <span>Distance Units</span>
+                            <select id="distance-units-select">
+                                <option value="metric">Kilometers (km)</option>
+                                <option value="imperial">Miles (mi)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <h3>App Settings</h3>
+                        <div class="setting-item toggle">
+                            <span>Dark Mode</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="dark-mode-toggle">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item toggle">
+                            <span>Save Search History</span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="save-history-toggle" checked>
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <button id="clear-data" class="secondary-btn">Clear App Data</button>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <h3>About</h3>
+                        <div class="about-app">
+                            <img src="images/paw-icon-192.png" alt="PAW Logo" class="about-logo">
+                            <p>PAW - Personal Assistant for Wayfinding</p>
+                            <p>Version 1.0.0</p>
+                            <p>Made with OpenStreetMap & Leaflet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Place Detail Modal -->
+        <div id="place-detail-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="place-name">Place Name</h3>
+                    <button id="close-modal" class="icon-btn">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="place-photo" id="place-photo"></div>
+                <div class="place-details">
+                    <div class="detail-item">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M12,11.5A2.5,2.5 0 0,1 9.5,9A2.5,2.5 0 0,1 12,6.5A2.5,2.5 0 0,1 14.5,9A2.5,2.5 0 0,1 12,11.5M12,2A7,7 0 0,0 5,9C5,14.25 12,22 12,22C12,22 19,14.25 19,9A7,7 0 0,0 12,2Z" />
+                        </svg>
+                        <p id="place-address">Address loading...</p>
+                    </div>
+                    <div class="detail-item" id="place-hours-container">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M12,20A8,8 0 0,0 20,12A8,8 0 0,0 12,4A8,8 0 0,0 4,12A8,8 0 0,0 12,20M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22C6.47,22 2,17.5 2,12A10,10 0 0,1 12,2M12.5,7V12.25L17,14.92L16.25,16.15L11,13V7H12.5Z" />
+                        </svg>
+                        <p id="place-hours">Hours loading...</p>
+                    </div>
+                    <div class="detail-item" id="place-phone-container">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M6.62,10.79C8.06,13.62 10.38,15.94 13.21,17.38L15.41,15.18C15.69,14.9 16.08,14.82 16.43,14.93C17.55,15.3 18.75,15.5 20,15.5A1,1 0 0,1 21,16.5V20A1,1 0 0,1 20,21A17,17 0 0,1 3,4A1,1 0 0,1 4,3H7.5A1,1 0 0,1 8.5,4C8.5,5.25 8.7,6.45 9.07,7.57C9.18,7.92 9.1,8.31 8.82,8.59L6.62,10.79Z" />
+                        </svg>
+                        <p id="place-phone">Phone loading...</p>
+                    </div>
+                </div>
+                <div class="place-actions">
+                    <button id="save-place" class="action-btn">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M17,3H7A2,2 0 0,0 5,5V21L12,18L19,21V5A2,2 0 0,0 17,3M17,18L12,15.82L7,18V5H17V18Z" />
+                        </svg>
+                        <span>Save</span>
+                    </button>
+                    <button id="share-place" class="action-btn">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M18,16.08C17.24,16.08 16.56,16.38 16.04,16.85L8.91,12.7C8.96,12.47 9,12.24 9,12C9,11.76 8.96,11.53 8.91,11.3L15.96,7.19C16.5,7.69 17.21,8 18,8A3,3 0 0,0 21,5A3,3 0 0,0 18,2A3,3 0 0,0 15,5C15,5.24 15.04,5.47 15.09,5.7L8.04,9.81C7.5,9.31 6.79,9 6,9A3,3 0 0,0 3,12A3,3 0 0,0 6,15C6.79,15 7.5,14.69 8.04,14.19L15.16,18.34C15.11,18.55 15.08,18.77 15.08,19C15.08,20.61 16.39,21.91 18,21.91C19.61,21.91 20.92,20.61 20.92,19A2.92,2.92 0 0,0 18,16.08Z" />
+                        </svg>
+                        <span>Share</span>
+                    </button>
+                    <button id="directions-to-place" class="action-btn primary">
+                        <svg viewBox="0 0 24 24" width="24" height="24">
+                            <path fill="currentColor" d="M22.43,10.59L13.42,1.58C13.03,1.19 12.51,1 12,1C11.49,1 10.97,1.19 10.58,1.58L1.59,10.59C1.39,10.79 1.24,11.03 1.14,11.29C1.05,11.55 1,11.83 1,12.12C1,12.41 1.05,12.69 1.14,12.95C1.24,13.21 1.39,13.45 1.59,13.65C1.79,13.85 2.03,14 2.29,14.1C2.55,14.19 2.83,14.24 3.12,14.24C3.41,14.24 3.69,14.19 3.95,14.1C4.21,14 4.45,13.85 4.65,13.65L5,13.29V20.5A2.5,2.5 0 0,0 7.5,23A2.5,2.5 0 0,0 10,20.5V16.5A0.5,0.5 0 0,1 10.5,16H13.5A0.5,0.5 0 0,1 14,16.5V20.5A2.5,2.5 0 0,0 16.5,23A2.5,2.5 0 0,0 19,20.5V13.29L19.35,13.65C19.55,13.85 19.79,14 20.05,14.1C20.31,14.19 20.59,14.24 20.88,14.24C21.17,14.24 21.45,14.19 21.71,14.1C21.97,14 22.21,13.85 22.41,13.65C22.61,13.45 22.76,13.21 22.86,12.95C22.95,12.69 23,12.41 23,12.12C23,11.83 22.95,11.55 22.86,11.29C22.76,11.03 22.61,10.79 22.41,10.59L22.43,10.59Z" />
+                        </svg>
+                        <span>Directions</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
     
-    <footer>
-        <p>© 2023 PAW - Pet Adoption Website</p>
-        <p>Made with ❤️ for animals</p>
-    </footer>
+        <!-- Leaflet JS for maps -->
+        <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
     
-    <script src="app.js"></script>
-    <script>
-        // Register service worker
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.register('/service-worker.js')
-                .then(reg => console.log('Service worker registered!', reg))
-                .catch(err => console.log('Service worker registration failed:', err));
-        }
-    </script>
-</body>
-</html>
+        <!-- Necessary for geocoding with OpenStreetMap -->
+        <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+        
+        <!-- Main app JavaScript -->
+        <script src="app.js"></script>
+        
+        <!-- Service worker registration -->
+        <script>
+            // Register service worker for offline functionality
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(reg => console.log('Service worker registered!', reg))
+                    .catch(err => console.log('Service worker registration failed:', err));
+            }
+        </script>
+    </body>
+    </html>
