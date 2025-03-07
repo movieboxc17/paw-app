@@ -2,40 +2,30 @@ const CACHE_NAME = 'wayfinder-cache-v1';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/style.css',
   '/app.js',
-  '/manifest.json',
-  '/images/logo.png',
-  '/images/icon-192.png',
-  '/images/icon-512.png'
+  '/styles.css',
+  '/images/app-icon.png',
+  '/images/app-icon-192.png',
+  '/images/app-icon-512.png',
+  '/images/placeholder.jpg',
+  'https://unpkg.com/leaflet@1.7.1/dist/leaflet.css',
+  'https://unpkg.com/leaflet@1.7.1/dist/leaflet.js',
+  'https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.css',
+  'https://unpkg.com/leaflet.locatecontrol/dist/L.Control.Locate.min.js'
 ];
 
-// Install the service worker and cache assets
+// Install event - cache assets
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
+        console.log('Opened cache');
         return cache.addAll(urlsToCache);
       })
   );
 });
 
-// Activate and clean up old caches
-self.addEventListener('activate', event => {
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-});
-
-// Serve cached content when offline
+// Fetch event - serve from cache, fall back to network
 self.addEventListener('fetch', event => {
   event.respondWith(
     caches.match(event.request)
@@ -45,33 +35,66 @@ self.addEventListener('fetch', event => {
           return response;
         }
         
-        // Clone the request
+        // Clone the request because it's a one-time use
         const fetchRequest = event.request.clone();
-
+        
         return fetch(fetchRequest).then(
           response => {
-            // Check if valid response
+            // Check if we received a valid response
             if (!response || response.status !== 200 || response.type !== 'basic') {
               return response;
             }
-
-            // Clone the response
+            
+            // Clone the response because it's a one-time use
             const responseToCache = response.clone();
-
+            
             caches.open(CACHE_NAME)
               .then(cache => {
+                // Store the response in cache
                 cache.put(event.request, responseToCache);
               });
-
+              
             return response;
           }
         );
       })
-      .catch(() => {
-        // Fallback for navigation requests
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
-      })
   );
 });
+
+// Activate event - clean up old caches
+self.addEventListener('activate', event => {
+  const cacheWhitelist = [CACHE_NAME];
+  
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheWhitelist.indexOf(cacheName) === -1) {
+            // If this cache name isn't present in the whitelist, delete it
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+});
+
+// Handle background sync for offline data
+self.addEventListener('sync', event => {
+  if (event.tag === 'sync-saved-places') {
+    event.waitUntil(syncSavedPlaces());
+  }
+});
+
+// Example function to sync saved places with server when online
+function syncSavedPlaces() {
+  return self.clients.matchAll()
+    .then(clients => {
+      if (clients && clients.length) {
+        // Send message to client to sync data
+        clients[0].postMessage({
+          type: 'sync-saved-places'
+        });
+      }
+    });
+}
