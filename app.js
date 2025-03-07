@@ -17,12 +17,23 @@ function initApp() {
         }, 500);
     }
 
-    // Check if the app is running as a PWA
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                  window.navigator.standalone;
+    // More robust PWA detection
+    const isPWA = () => {
+        // Check if in standalone mode (iOS Safari and Android Chrome)
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+            return true;
+        }
+        
+        // Check if app was previously marked as installed
+        if (localStorage.getItem('app_installed') === 'true') {
+            return true;
+        }
+        
+        return false;
+    };
     
     // Show installation guide if not PWA and not previously dismissed
-    if (!isPWA && !localStorage.getItem('installation_guide_dismissed')) {
+    if (!isPWA() && !localStorage.getItem('installation_guide_dismissed')) {
         showInstallationGuide();
     }
 
@@ -269,7 +280,7 @@ function addPlaceCard(place, container) {
                 </button>
                 <button class="card-action-btn get-directions" data-place-id="${place.id}">
                     <svg viewBox="0 0 24 24" width="18" height="18">
-                                                <path fill="currentColor" d="M21.71,11.29l-9-9c-0.39-0.39-1.02-0.39-1.41,0l-9,9c-0.39,0.39-0.39,1.02,0,1.41l9,9c0.39,0.39,1.02,0.39,1.41,0l9-9C22.1,12.32,22.1,11.69,21.71,11.29z M14,14.5V12h-4v3H8v-4c0-0.55,0.45-1,1-1h5V7.5l3.5,3.5L14,14.5z" />
+                        <path fill="currentColor" d="M21.71,11.29l-9-9c-0.39-0.39-1.02-0.39-1.41,0l-9,9c-0.39,0.39-0.39,1.02,0,1.41l9,9c0.39,0.39,1.02,0.39,1.41,0l9-9C22.1,12.32,22.1,11.69,21.71,11.29z M14,14.5V12h-4v3H8v-4c0-0.55,0.45-1,1-1h5V7.5l3.5,3.5L14,14.5z" />
                     </svg>
                     Directions
                 </button>
@@ -371,331 +382,331 @@ function savePlace(place) {
     // Get existing saved places
     let savedPlaces = JSON.parse(localStorage.getItem('savedPlaces') || '[]');
     
-    // Check if the place is already saved
-    if (!savedPlaces.some(p => p.id === place.id)) {
-        savedPlaces.push(place);
-        localStorage.setItem('savedPlaces', JSON.stringify(savedPlaces));
-        
-        // Refresh the saved places view if it's active
-        if (document.getElementById('saved-view').classList.contains('active-view')) {
-            loadSavedPlaces();
-        }
-    }
-}
-
-// Share a place
-function sharePlace(place) {
-    // Use the Web Share API if available
-    if (navigator.share) {
-        navigator.share({
-            title: place.name,
-            text: `Check out ${place.name}!`,
-            url: window.location.href
-        })
-        .then(() => showToast('Shared successfully!'))
-        .catch(err => showToast('Could not share at this time'));
-    } else {
-        // Fallback for browsers that don't support Web Share API
-        showToast('Sharing not supported in this browser');
-        // Could provide a fallback like copying location to clipboard
-    }
-}
-
-// Show directions to a place
-function showDirectionsToPlace(place) {
-    // Navigate to the route view
-    navigateToView('routes');
-    
-    // Set the destination in the route form
-    document.getElementById('route-end').value = place.name;
-    
-    // Get current location for the start point
-    if (window.userMarker) {
-        const userLocation = window.userMarker.getLatLng();
-        // We could do a reverse geocode here to get an address
-        document.getElementById('route-start').value = 'My Location';
-        
-        // Store the coordinates for route calculation
-        window.routeEndPoint = place.location;
-        window.routeStartPoint = [userLocation.lat, userLocation.lng];
-    }
-}
-
-// Setup event listeners for the app
-function setupEventListeners() {
-    // Menu button
-    document.getElementById('menu-btn').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.add('active');
-    });
-    
-    // Sidebar close button
-    document.getElementById('sidebar-close').addEventListener('click', function() {
-        document.getElementById('sidebar').classList.remove('active');
-    });
-    
-    // Navigation items in sidebar
-    document.querySelectorAll('#sidebar nav li').forEach(item => {
-        item.addEventListener('click', function() {
-            // Close the sidebar
-            document.getElementById('sidebar').classList.remove('active');
+        // Check if the place is already saved
+        if (!savedPlaces.some(p => p.id === place.id)) {
+            savedPlaces.push(place);
+            localStorage.setItem('savedPlaces', JSON.stringify(savedPlaces));
             
-            // Navigate to the selected view
-            const view = this.dataset.view;
-            navigateToView(view);
-        });
-    });
-    
-    // Bottom navigation
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const view = this.dataset.view;
-            navigateToView(view);
-        });
-    });
-    
-    // Search button
-    document.getElementById('search-btn').addEventListener('click', function() {
-        document.getElementById('search-overlay').classList.add('active');
-        document.getElementById('search-input').focus();
-    });
-    
-    // Search close button
-    document.getElementById('search-close').addEventListener('click', function() {
-        document.getElementById('search-overlay').classList.remove('active');
-    });
-    
-    // Search input
-    document.getElementById('search-input').addEventListener('input', function() {
-        if (this.value.length > 2) {
-            searchPlaces(this.value);
-        }
-    });
-    
-    // Category filters in nearby view
-    document.querySelectorAll('.category-filter').forEach(filter => {
-        filter.addEventListener('click', function() {
-            const category = this.dataset.filter;
-            
-            if (category === 'all') {
-                findNearbyPlaces();
-            } else {
-                searchNearbyCategory(category);
+            // Refresh the saved places view if it's active
+            if (document.getElementById('saved-view').classList.contains('active-view')) {
+                loadSavedPlaces();
             }
-        });
-    });
-    
-    // Route calculation
-    document.getElementById('calculate-route').addEventListener('click', function() {
-        calculateRoute();
-    });
-    
-    // Route mode options
-    document.querySelectorAll('.route-option').forEach(option => {
-        option.addEventListener('click', function() {
-            document.querySelectorAll('.route-option').forEach(opt => opt.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-    
-    // Current location buttons for route inputs
-    document.getElementById('route-start-location').addEventListener('click', function() {
-        document.getElementById('route-start').value = 'My Location';
-        if (window.userMarker) {
-            const location = window.userMarker.getLatLng();
-            window.routeStartPoint = [location.lat, location.lng];
         }
-    });
-    
-    document.getElementById('route-end-location').addEventListener('click', function() {
-        document.getElementById('route-end').value = 'My Location';
-        if (window.userMarker) {
-            const location = window.userMarker.getLatLng();
-            window.routeEndPoint = [location.lat, location.lng];
-        }
-    });
-    
-    // Settings toggles
-    document.getElementById('dark-mode-toggle').addEventListener('change', function() {
-        toggleDarkMode(this.checked);
-    });
-    
-    document.getElementById('map-style-select').addEventListener('change', function() {
-        changeMapStyle(this.value);
-    });
-    
-    document.getElementById('clear-data').addEventListener('click', function() {
-        if (confirm('Are you sure you want to clear all app data?')) {
-            clearAppData();
-        }
-    });
-}
-
-// Navigate to a specific view
-function navigateToView(viewName) {
-    // Hide all views
-    document.querySelectorAll('.app-view').forEach(view => {
-        view.classList.remove('active-view');
-    });
-    
-    // Show selected view
-    document.getElementById(`${viewName}-view`).classList.add('active-view');
-    
-    // Update bottom nav
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.remove('active');
-        if (item.dataset.view === viewName) {
-            item.classList.add('active');
-        }
-    });
-    
-    // Update sidebar nav
-    document.querySelectorAll('#sidebar nav li').forEach(item => {
-        item.classList.remove('active');
-        if (item.dataset.view === viewName) {
-            item.classList.add('active');
-        }
-    });
-    
-    // Special handling for map view
-    if (viewName === 'map' && window.appMap) {
-        window.appMap.invalidateSize();
     }
-}
-
-// Search for places by name or keyword
-function searchPlaces(query) {
-    // In a real app, this would use a geocoding API
-    const resultsContainer = document.querySelector('.search-results');
-    resultsContainer.innerHTML = '<div class="loading-indicator"><div class="spinner"></div><p>Searching...</p></div>';
     
-    // Simulate search delay
-    setTimeout(() => {
-        // Generate some mock results
-        const mockResults = [
-            {
-                name: query + ' Restaurant',
-                address: '123 Main St',
-                category: 'restaurant',
-                distance: '0.8 km',
-                icon: '🍽️'
-            },
-            {
-                name: query + ' Café',
-                address: '456 Elm St',
-                category: 'cafe',
-                distance: '1.2 km',
-                icon: '☕'
-            },
-            {
-                name: query + ' Park',
-                address: '789 Oak St',
-                category: 'park',
-                distance: '1.5 km',
-                icon: '🌳'
-            }
-        ];
-        
-        resultsContainer.innerHTML = '';
-        
-        mockResults.forEach(result => {
-            const resultItem = document.createElement('div');
-            resultItem.className = 'search-result';
-            resultItem.innerHTML = `
-                <div class="search-result-icon">${result.icon}</div>
-                <div class="search-result-info">
-                    <h3>${result.name}</h3>
-                    <p>${result.category} · ${result.distance}</p>
-                </div>
-            `;
-            
-            // Add click handler
-            resultItem.addEventListener('click', function() {
-                // Close search and navigate to location
-                document.getElementById('search-overlay').classList.remove('active');
-                
-                // Generate a mock place
-                const center = window.appMap.getCenter();
-                const place = {
-                    id: 'search_' + Math.random().toString(36).substr(2, 9),
-                    name: result.name,
-                    category: result.category,
-                    icon: result.icon,
-                    location: [center.lat + (Math.random() - 0.5) * 0.01, center.lng + (Math.random() - 0.5) * 0.01],
-                    address: result.address,
-                    rating: (Math.random() * 2 + 3).toFixed(1),
-                    distance: result.distance
-                };
-                
-                // Add marker and show details
-                addPlaceMarker(place);
-                window.appMap.setView(place.location, 16);
-                showPlaceDetails(place);
-            });
-            
-            resultsContainer.appendChild(resultItem);
-        });
-    }, 1000);
-}
-
-// Find nearby places based on user location
-function findNearbyPlaces(location) {
-    // In a real app, this would use a places API
-    const container = document.getElementById('nearby-places-container');
-    container.innerHTML = '<div class="loading-indicator"><div class="spinner"></div><p>Finding places nearby...</p></div>';
-    
-    // Use cached location or map center if no location provided
-    if (!location) {
-        if (window.userMarker) {
-            const userLoc = window.userMarker.getLatLng();
-            location = [userLoc.lat, userLoc.lng];
+    // Share a place
+    function sharePlace(place) {
+        // Use the Web Share API if available
+        if (navigator.share) {
+            navigator.share({
+                title: place.name,
+                text: `Check out ${place.name}!`,
+                url: window.location.href
+            })
+            .then(() => showToast('Shared successfully!'))
+            .catch(err => showToast('Could not share at this time'));
         } else {
-            const center = window.appMap.getCenter();
-            location = [center.lat, center.lng];
+            // Fallback for browsers that don't support Web Share API
+            showToast('Sharing not supported in this browser');
+            // Could provide a fallback like copying location to clipboard
         }
     }
     
-    // Simulate loading delay
-    setTimeout(() => {
-        // Clear previous markers
-        if (window.placeMarkers) {
-            Object.values(window.placeMarkers).forEach(marker => {
-                window.appMap.removeLayer(marker);
-            });
-            window.placeMarkers = {};
+    // Show directions to a place
+    function showDirectionsToPlace(place) {
+        // Navigate to the route view
+        navigateToView('routes');
+        
+        // Set the destination in the route form
+        document.getElementById('route-end').value = place.name;
+        
+        // Get current location for the start point
+        if (window.userMarker) {
+            const userLocation = window.userMarker.getLatLng();
+            // We could do a reverse geocode here to get an address
+            document.getElementById('route-start').value = 'My Location';
+            
+            // Store the coordinates for route calculation
+            window.routeEndPoint = place.location;
+            window.routeStartPoint = [userLocation.lat, userLocation.lng];
         }
-        
-        // Get mock places
-        const mockPlaces = generateMockPlaces({lat: location[0], lng: location[1]});
-        
-        // Clear container
-        container.innerHTML = '';
-        
-        // Add place cards and markers
-        mockPlaces.forEach(place => {
-            addPlaceCard(place, container);
-            addPlaceMarker(place);
+    }
+    
+    // Setup event listeners for the app
+    function setupEventListeners() {
+        // Menu button
+        document.getElementById('menu-btn').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.add('active');
         });
-    }, 1000);
-}
-
-// Calculate a route between two points
-function calculateRoute() {
-    const startInput = document.getElementById('route-start').value;
-    const endInput = document.getElementById('route-end').value;
-    
-    if (!startInput || !endInput) {
-        showToast('Please enter both start and end locations');
-        return;
+        
+        // Sidebar close button
+        document.getElementById('sidebar-close').addEventListener('click', function() {
+            document.getElementById('sidebar').classList.remove('active');
+        });
+        
+        // Navigation items in sidebar
+        document.querySelectorAll('#sidebar nav li').forEach(item => {
+            item.addEventListener('click', function() {
+                // Close the sidebar
+                document.getElementById('sidebar').classList.remove('active');
+                
+                // Navigate to the selected view
+                const view = this.dataset.view;
+                navigateToView(view);
+            });
+        });
+        
+        // Bottom navigation
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const view = this.dataset.view;
+                navigateToView(view);
+            });
+        });
+        
+        // Search button
+        document.getElementById('search-btn').addEventListener('click', function() {
+            document.getElementById('search-overlay').classList.add('active');
+            document.getElementById('search-input').focus();
+        });
+        
+        // Search close button
+        document.getElementById('search-close').addEventListener('click', function() {
+            document.getElementById('search-overlay').classList.remove('active');
+        });
+        
+        // Search input
+        document.getElementById('search-input').addEventListener('input', function() {
+            if (this.value.length > 2) {
+                searchPlaces(this.value);
+            }
+        });
+        
+        // Category filters in nearby view
+        document.querySelectorAll('.category-filter').forEach(filter => {
+            filter.addEventListener('click', function() {
+                const category = this.dataset.filter;
+                
+                if (category === 'all') {
+                    findNearbyPlaces();
+                } else {
+                    searchNearbyCategory(category);
+                }
+            });
+        });
+        
+        // Route calculation
+        document.getElementById('calculate-route').addEventListener('click', function() {
+            calculateRoute();
+        });
+        
+        // Route mode options
+        document.querySelectorAll('.route-option').forEach(option => {
+            option.addEventListener('click', function() {
+                document.querySelectorAll('.route-option').forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+            });
+        });
+        
+        // Current location buttons for route inputs
+        document.getElementById('route-start-location').addEventListener('click', function() {
+            document.getElementById('route-start').value = 'My Location';
+            if (window.userMarker) {
+                const location = window.userMarker.getLatLng();
+                window.routeStartPoint = [location.lat, location.lng];
+            }
+        });
+        
+        document.getElementById('route-end-location').addEventListener('click', function() {
+            document.getElementById('route-end').value = 'My Location';
+            if (window.userMarker) {
+                const location = window.userMarker.getLatLng();
+                window.routeEndPoint = [location.lat, location.lng];
+            }
+        });
+        
+        // Settings toggles
+        document.getElementById('dark-mode-toggle').addEventListener('change', function() {
+            toggleDarkMode(this.checked);
+        });
+        
+        document.getElementById('map-style-select').addEventListener('change', function() {
+            changeMapStyle(this.value);
+        });
+        
+        document.getElementById('clear-data').addEventListener('click', function() {
+            if (confirm('Are you sure you want to clear all app data?')) {
+                clearAppData();
+            }
+        });
     }
     
-    // Get selected transportation mode
-    let mode = 'driving';
-    document.querySelectorAll('.route-option').forEach(option => {
-        if (option.classList.contains('active')) {
-            mode = option.dataset.mode;
+    // Navigate to a specific view
+    function navigateToView(viewName) {
+        // Hide all views
+        document.querySelectorAll('.app-view').forEach(view => {
+            view.classList.remove('active-view');
+        });
+        
+        // Show selected view
+        document.getElementById(`${viewName}-view`).classList.add('active-view');
+        
+        // Update bottom nav
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+            if (item.dataset.view === viewName) {
+                item.classList.add('active');
+            }
+        });
+        
+        // Update sidebar nav
+        document.querySelectorAll('#sidebar nav li').forEach(item => {
+            item.classList.remove('active');
+            if (item.dataset.view === viewName) {
+                item.classList.add('active');
+            }
+        });
+        
+        // Special handling for map view
+        if (viewName === 'map' && window.appMap) {
+            window.appMap.invalidateSize();
         }
-    });
+    }
     
+    // Search for places by name or keyword
+    function searchPlaces(query) {
+        // In a real app, this would use a geocoding API
+        const resultsContainer = document.querySelector('.search-results');
+        resultsContainer.innerHTML = '<div class="loading-indicator"><div class="spinner"></div><p>Searching...</p></div>';
+        
+        // Simulate search delay
+        setTimeout(() => {
+            // Generate some mock results
+            const mockResults = [
+                {
+                    name: query + ' Restaurant',
+                    address: '123 Main St',
+                    category: 'restaurant',
+                    distance: '0.8 km',
+                    icon: '🍽️'
+                },
+                {
+                    name: query + ' Café',
+                    address: '456 Elm St',
+                    category: 'cafe',
+                    distance: '1.2 km',
+                    icon: '☕'
+                },
+                {
+                    name: query + ' Park',
+                    address: '789 Oak St',
+                    category: 'park',
+                    distance: '1.5 km',
+                    icon: '🌳'
+                }
+            ];
+            
+            resultsContainer.innerHTML = '';
+            
+            mockResults.forEach(result => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'search-result';
+                resultItem.innerHTML = `
+                    <div class="search-result-icon">${result.icon}</div>
+                    <div class="search-result-info">
+                        <h3>${result.name}</h3>
+                        <p>${result.category} · ${result.distance}</p>
+                    </div>
+                `;
+                
+                // Add click handler
+                resultItem.addEventListener('click', function() {
+                    // Close search and navigate to location
+                    document.getElementById('search-overlay').classList.remove('active');
+                    
+                    // Generate a mock place
+                    const center = window.appMap.getCenter();
+                    const place = {
+                        id: 'search_' + Math.random().toString(36).substr(2, 9),
+                        name: result.name,
+                        category: result.category,
+                        icon: result.icon,
+                        location: [center.lat + (Math.random() - 0.5) * 0.01, center.lng + (Math.random() - 0.5) * 0.01],
+                        address: result.address,
+                        rating: (Math.random() * 2 + 3).toFixed(1),
+                        distance: result.distance
+                    };
+                    
+                    // Add marker and show details
+                    addPlaceMarker(place);
+                    window.appMap.setView(place.location, 16);
+                    showPlaceDetails(place);
+                });
+                
+                resultsContainer.appendChild(resultItem);
+            });
+        }, 1000);
+    }
+    
+    // Find nearby places based on user location
+    function findNearbyPlaces(location) {
+        // In a real app, this would use a places API
+        const container = document.getElementById('nearby-places-container');
+        container.innerHTML = '<div class="loading-indicator"><div class="spinner"></div><p>Finding places nearby...</p></div>';
+        
+        // Use cached location or map center if no location provided
+        if (!location) {
+            if (window.userMarker) {
+                const userLoc = window.userMarker.getLatLng();
+                location = [userLoc.lat, userLoc.lng];
+            } else {
+                const center = window.appMap.getCenter();
+                location = [center.lat, center.lng];
+            }
+        }
+        
+        // Simulate loading delay
+        setTimeout(() => {
+            // Clear previous markers
+            if (window.placeMarkers) {
+                Object.values(window.placeMarkers).forEach(marker => {
+                    window.appMap.removeLayer(marker);
+                });
+                window.placeMarkers = {};
+            }
+            
+            // Get mock places
+            const mockPlaces = generateMockPlaces({lat: location[0], lng: location[1]});
+            
+            // Clear container
+            container.innerHTML = '';
+            
+            // Add place cards and markers
+            mockPlaces.forEach(place => {
+                addPlaceCard(place, container);
+                addPlaceMarker(place);
+            });
+        }, 1000);
+    }
+    
+    // Calculate a route between two points
+    function calculateRoute() {
+        const startInput = document.getElementById('route-start').value;
+        const endInput = document.getElementById('route-end').value;
+        
+        if (!startInput || !endInput) {
+            showToast('Please enter both start and end locations');
+            return;
+        }
+        
+        // Get selected transportation mode
+        let mode = 'driving';
+        document.querySelectorAll('.route-option').forEach(option => {
+            if (option.classList.contains('active')) {
+                mode = option.dataset.mode;
+            }
+        });
+        
         // Simulate route calculation
         const routeResults = document.getElementById('route-results');
         routeResults.innerHTML = '<div class="loading-indicator"><div class="spinner"></div><p>Calculating route...</p></div>';
@@ -791,7 +802,7 @@ function calculateRoute() {
             opacity: 0.8,
             lineJoin: 'round'
         }).addTo(window.appMap);
-        
+    
         // Fit the map to show the entire route
         window.appMap.fitBounds(window.routeLine.getBounds(), {
             padding: [50, 50]
@@ -1038,137 +1049,137 @@ function calculateRoute() {
         document.getElementById('dark-mode-toggle').checked = darkMode;
         toggleDarkMode(darkMode);
         
-            // Apply map style
-    const mapStyle = localStorage.getItem('mapStyle') || 'standard';
-    document.getElementById('map-style-select').value = mapStyle;
-    
-    // In a real app, we would actually change the map tiles based on the style
-}
-
-// Show a toast notification
-function showToast(message) {
-    // Check if there's already a toast
-    let toast = document.querySelector('.toast');
-    
-    if (!toast) {
-        // Create new toast
-        toast = document.createElement('div');
-        toast.className = 'toast';
-        document.body.appendChild(toast);
+        // Apply map style
+        const mapStyle = localStorage.getItem('mapStyle') || 'standard';
+        document.getElementById('map-style-select').value = mapStyle;
+        
+        // In a real app, we would actually change the map tiles based on the style
     }
     
-    // Set message and show
-    toast.textContent = message;
-    toast.classList.add('show');
-    
-    // Hide after 3 seconds
-    setTimeout(() => {
-        toast.classList.remove('show');
-    }, 3000);
-}
-
-// Show location options when user taps on map
-function showLocationOptions(latlng) {
-    // Create a temporary marker
-    const tempMarker = L.marker(latlng).addTo(window.appMap);
-    
-    // Create a popup with options
-    const popup = L.popup()
-        .setLatLng(latlng)
-        .setContent(`
-            <div class="map-popup">
-                <p>What would you like to do?</p>
-                <button id="popup-start-here" class="popup-btn">Start route here</button>
-                <button id="popup-end-here" class="popup-btn">End route here</button>
-                <button id="popup-add-place" class="popup-btn">Add a place</button>
-            </div>
-        `)
-        .openOn(window.appMap);
-    
-    // Add event listeners
-    setTimeout(() => {
-        document.getElementById('popup-start-here').addEventListener('click', function() {
-            window.routeStartPoint = [latlng.lat, latlng.lng];
-            
-            // Set start in route view
-            document.getElementById('route-start').value = 'Selected location';
-            
-            // Navigate to route view
-            navigateToView('routes');
-            
-            // Close popup
-            window.appMap.closePopup();
-            
-            // Remove temp marker
-            window.appMap.removeLayer(tempMarker);
-        });
+    // Show a toast notification
+    function showToast(message) {
+        // Check if there's already a toast
+        let toast = document.querySelector('.toast');
         
-        document.getElementById('popup-end-here').addEventListener('click', function() {
-            window.routeEndPoint = [latlng.lat, latlng.lng];
-            
-            // Set end in route view
-            document.getElementById('route-end').value = 'Selected location';
-            
-            // Navigate to route view
-            navigateToView('routes');
-            
-            // Close popup
-            window.appMap.closePopup();
-            
-            // Remove temp marker
-            window.appMap.removeLayer(tempMarker);
-        });
-        
-        document.getElementById('popup-add-place').addEventListener('click', function() {
-            addCustomPlace(latlng);
-            
-            // Close popup
-            window.appMap.closePopup();
-            
-            // Remove temp marker
-            window.appMap.removeLayer(tempMarker);
-        });
-    }, 100);
-    
-    // Set up popup close event
-    window.appMap.on('popupclose', function() {
-        // Remove temp marker if it exists
-        if (window.appMap.hasLayer(tempMarker)) {
-            window.appMap.removeLayer(tempMarker);
+        if (!toast) {
+            // Create new toast
+            toast = document.createElement('div');
+            toast.className = 'toast';
+            document.body.appendChild(toast);
         }
-    });
-}
-
-// Add a custom place
-function addCustomPlace(latlng) {
-    // In a real app, this would open a form to enter place details
-    // For the demo, we'll create a simple prompt
-    const placeName = prompt('Enter a name for this place:');
+        
+        // Set message and show
+        toast.textContent = message;
+        toast.classList.add('show');
+        
+        // Hide after 3 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+        }, 3000);
+    }
     
-    if (placeName) {
-        const place = {
-            id: 'custom_' + Math.random().toString(36).substr(2, 9),
-            name: placeName,
-            category: 'custom',
-            icon: '📍',
-            location: [latlng.lat, latlng.lng],
-            address: 'Custom location',
-            rating: '5.0',
-            distance: '0'
-        };
+    // Show location options when user taps on map
+    function showLocationOptions(latlng) {
+        // Create a temporary marker
+        const tempMarker = L.marker(latlng).addTo(window.appMap);
         
-        // Add marker
-        addPlaceMarker(place);
+        // Create a popup with options
+        const popup = L.popup()
+            .setLatLng(latlng)
+            .setContent(`
+                <div class="map-popup">
+                    <p>What would you like to do?</p>
+                    <button id="popup-start-here" class="popup-btn">Start route here</button>
+                    <button id="popup-end-here" class="popup-btn">End route here</button>
+                    <button id="popup-add-place" class="popup-btn">Add a place</button>
+                </div>
+            `)
+            .openOn(window.appMap);
         
-        // Ask if user wants to save
-        if (confirm('Would you like to save this place?')) {
-            savePlace(place);
-            showToast('Place saved successfully!');
+        // Add event listeners
+        setTimeout(() => {
+            document.getElementById('popup-start-here').addEventListener('click', function() {
+                window.routeStartPoint = [latlng.lat, latlng.lng];
+                
+                // Set start in route view
+                document.getElementById('route-start').value = 'Selected location';
+                
+                // Navigate to route view
+                navigateToView('routes');
+                
+                // Close popup
+                window.appMap.closePopup();
+                
+                // Remove temp marker
+                window.appMap.removeLayer(tempMarker);
+            });
+            
+            document.getElementById('popup-end-here').addEventListener('click', function() {
+                window.routeEndPoint = [latlng.lat, latlng.lng];
+                
+                // Set end in route view
+                document.getElementById('route-end').value = 'Selected location';
+                
+                // Navigate to route view
+                navigateToView('routes');
+                
+                // Close popup
+                window.appMap.closePopup();
+                
+                // Remove temp marker
+                window.appMap.removeLayer(tempMarker);
+            });
+            
+            document.getElementById('popup-add-place').addEventListener('click', function() {
+                addCustomPlace(latlng);
+                
+                // Close popup
+                window.appMap.closePopup();
+                
+                // Remove temp marker
+                window.appMap.removeLayer(tempMarker);
+            });
+        }, 100);
+        
+        // Set up popup close event
+        window.appMap.on('popupclose', function() {
+            // Remove temp marker if it exists
+            if (window.appMap.hasLayer(tempMarker)) {
+                window.appMap.removeLayer(tempMarker);
+            }
+        });
+    }
+    
+    // Add a custom place
+    function addCustomPlace(latlng) {
+        // In a real app, this would open a form to enter place details
+        // For the demo, we'll create a simple prompt
+        const placeName = prompt('Enter a name for this place:');
+        
+        if (placeName) {
+            const place = {
+                id: 'custom_' + Math.random().toString(36).substr(2, 9),
+                name: placeName,
+                category: 'custom',
+                icon: '📍',
+                location: [latlng.lat, latlng.lng],
+                address: 'Custom location',
+                rating: '5.0',
+                distance: '0'
+            };
+            
+            // Add marker
+            addPlaceMarker(place);
+            
+            // Ask if user wants to save
+            if (confirm('Would you like to save this place?')) {
+                savePlace(place);
+                showToast('Place saved successfully!');
+            }
         }
     }
-}
-
-// Handle app installation
+    
+    // Handle app installation
 window.addEventListener('beforeinstallprompt', (e) => {
     // Prevent Chrome 67 and earlier from automatically showing the prompt
     e.preventDefault();
@@ -1188,16 +1199,41 @@ window.addEventListener('beforeinstallprompt', (e) => {
             // Wait for the user to respond to the prompt
             const { outcome } = await window.deferredPrompt.userChoice;
             
+            // If the user accepted the installation, mark the app as installed
+            if (outcome === 'accepted') {
+                localStorage.setItem('app_installed', 'true');
+                
+                // Hide any installation prompts
+                const guide = document.getElementById('installation-guide');
+                if (guide) {
+                    guide.style.display = 'none';
+                }
+            }
+            
             // Hide button regardless of outcome
             installBtn.style.display = 'none';
             
             // We no longer need the prompt
             window.deferredPrompt = null;
             
-            // Log outcome
             console.log(`User ${outcome === 'accepted' ? 'accepted' : 'dismissed'} the install prompt`);
         });
     }
+});
+
+// Listen for the app being installed
+window.addEventListener('appinstalled', (evt) => {
+    // When the app is installed, set the flag in localStorage
+    localStorage.setItem('app_installed', 'true');
+    
+    // Hide any installation prompts
+    const guide = document.getElementById('installation-guide');
+    if (guide) {
+        guide.style.display = 'none';
+    }
+    
+    // Log the installation
+    console.log('Wayfinder was installed');
 });
 
 // Register service worker for PWA
@@ -1276,3 +1312,24 @@ function handleSwipeGesture() {
         }
     }
 }
+
+// Display a welcome message on first run
+function checkFirstRun() {
+    if (!localStorage.getItem('app_first_run')) {
+        // First time running the app
+        setTimeout(() => {
+            showToast('Welcome to Wayfinder! Explore the map to get started.');
+        }, 3000);
+        
+        localStorage.setItem('app_first_run', 'true');
+    }
+}
+
+// Add first run check to the app initialization
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize the app after a simulated loading time
+    setTimeout(function() {
+        initApp();
+        checkFirstRun();
+    }, 2000);
+});
